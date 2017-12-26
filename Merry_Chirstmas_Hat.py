@@ -16,9 +16,10 @@ def add_hat(img,hat_img):
     r,g,b,a = cv2.split(hat_img) 
     rgb_hat = cv2.merge((r,g,b))
 
+    # 保存帽子的aplph通道图像
     cv2.imwrite("hat_alpha.jpg",a)
 
-    # ------------------------- 用dlib的人脸检测代替OpenCV的人脸检测-----------------------
+    # -----------------------------------OpenCV的人脸检测------------------------------------------
     # # 灰度变换
     # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)  
     # # 用opencv自带的人脸检测器检测人脸
@@ -27,7 +28,7 @@ def add_hat(img,hat_img):
 
     # ------------------------- 用dlib的人脸检测代替OpenCV的人脸检测-----------------------
 
-    # dlib人脸关键点检测器
+    # dlib人脸关键点检测器(需要确保.py文件同级目录下有shape_predictor_5_face_landmarks.dat这个文件)
     predictor_path = "shape_predictor_5_face_landmarks.dat"
     predictor = dlib.shape_predictor(predictor_path)  
 
@@ -38,43 +39,42 @@ def add_hat(img,hat_img):
     dets = detector(img, 1)
 
     # 如果检测到人脸
-    if len(dets)>0:  
+    if len(dets)>0:
+        # 遍历所有人脸
         for d in dets:
             x,y,w,h = d.left(),d.top(), d.right()-d.left(), d.bottom()-d.top()
-            # x,y,w,h = faceRect  
+            # x,y,w,h = faceRect
+            # 将人脸用矩形框出来
             # cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2,8,0)
 
             # 关键点检测，5个关键点
             shape = predictor(img, d)
+            # 将关键点用圆形框出来
             # for point in shape.parts():
             #     cv2.circle(img,(point.x,point.y),3,color=(0,255,0))
 
-            # cv2.imshow("image",img)
-            # cv2.waitKey()  
-
-            # 选取左右眼眼角的点
+            # 选取左(0)右(2)眼眼角的点
             point1 = shape.part(0)
             point2 = shape.part(2)
 
             # 求两点中心
             eyes_center = ((point1.x+point2.x)//2,(point1.y+point2.y)//2)
-
+            # 画出中心点
             # cv2.circle(img,eyes_center,3,color=(0,255,0))  
-            # cv2.imshow("image",img)
-            # cv2.waitKey()
 
             #  根据人脸大小调整帽子大小
-            factor = 1.5
+            factor = 1.5    # 比例因子
             resized_hat_h = int(round(rgb_hat.shape[0]*w/rgb_hat.shape[1]*factor))
             resized_hat_w = int(round(rgb_hat.shape[1]*w/rgb_hat.shape[1]*factor))
 
+            # 避免帽子高度超出图像画面
             if resized_hat_h > y:
                 resized_hat_h = y-1
 
             # 根据人脸大小调整帽子大小
             resized_hat = cv2.resize(rgb_hat,(resized_hat_w,resized_hat_h))
 
-            # 用alpha通道作为mask
+            # 用alpha通道作为mask(bitwise_not)
             mask = cv2.resize(a,(resized_hat_w,resized_hat_h))
             mask_inv =  cv2.bitwise_not(mask)
 
@@ -131,7 +131,7 @@ def add_hat(img,hat_img):
 
    
 # 读取帽子图，第二个参数-1表示读取为rgba通道，否则为rgb通道
-hat_img = cv2.imread("hat.png",-1)
+hat_img = cv2.imread("hat.png", -1)
 
 
 # 方式1: 打开摄像头读取头像图
